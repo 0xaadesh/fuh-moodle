@@ -33,18 +33,32 @@ function truncate(text: string, limit: number): string {
 }
 
 /**
- * An array of {qno, letter} rather than a map keyed by question number:
- * strict JSON-schema modes cannot express dynamic keys, and an array is what
- * structured outputs handles reliably.
+ * Answers are keyed by an opaque string id, never by a number.
+ *
+ * Moodle question text very often begins with its own numbering ("19. What is
+ * the main goal of..."). When the prompt also labelled the question with a
+ * number, models resolved the ambiguity in favour of the number inside the
+ * text — silently mapping every answer onto the wrong question. An id like
+ * "q7" cannot collide with question content.
  */
 const AnswerSheet = z.object({
   answers: z.array(
     z.object({
-      qno: z.number().int(),
+      id: z.string(),
       letter: z.string(),
     })
   ),
 })
+
+/** Ties the opaque prompt id back to the Moodle question number. */
+type PromptItem = {
+  id: string
+  question: HarvestedQuestion
+}
+
+function promptItems(questions: HarvestedQuestion[]): PromptItem[] {
+  return questions.map((question, index) => ({ id: `q${index + 1}`, question }))
+}
 
 /** Groq rejects unknown top-level keys on the schema it is handed. */
 function wireSchema(): Record<string, unknown> {
@@ -53,13 +67,17 @@ function wireSchema(): Record<string, unknown> {
   return rest
 }
 
-function buildPrompt(questions: HarvestedQuestion[]): string {
-  const block = questions
-    .map((q) => {
-      const choices = q.choices
+function buildPrompt(items: PromptItem[]): string {
+  const block = items
+    .map(({ id, question }) => {
+      const choices = question.choices
         .map((c) => `${c.letter}) ${truncate(c.text, MAX_CHOICE_CHARS)}`)
         .join("\n")
-      return `Question ${q.qno}:\n${truncate(q.question, MAX_QUESTION_CHARS)}\n\nChoices:\n${choices}`
+      return (
+        `[id: ${id}]\n` +
+        `${truncate(question.question, MAX_QUESTION_CHARS)}\n\n` +
+        `Choices:\n${choices}`
+      )
     })
     .join("\n\n---\n\n")
 
@@ -68,8 +86,11 @@ function buildPrompt(questions: HarvestedQuestion[]): string {
     `${block}\n\n` +
     `Identify the correct option letter for each question. Answer every question.\n` +
     `Return a single JSON object of the form ` +
-    `{"answers":[{"qno":1,"letter":"a"},{"qno":2,"letter":"c"}]}, ` +
-    `where "qno" is the question number and "letter" is the correct option letter.\n\n` +
+    `{"answers":[{"id":"q1","letter":"a"},{"id":"q2","letter":"c"}]}.\n\n` +
+    `IMPORTANT: "id" must be copied exactly from the [id: ...] line above each ` +
+    `question. Some questions begin with their own numbering, such as ` +
+    `"19. What is...". That number is part of the question text and is NOT the ` +
+    `id — never use it. Only the value inside [id: ...] identifies a question.\n\n` +
     `Do not write explanations, introductions, markdown fences, or any text other ` +
     `than the valid JSON object. Output ONLY the raw JSON object.`
   )
@@ -88,31 +109,72 @@ function extractJson(content: string): string {
   return withoutFences.slice(start, end + 1)
 }
 
-function toAnswerMap(raw: unknown): AnswerMap {
+type MappedAnswers = {
+  answers: AnswerMap
+  warnings: string[]
+}
+
+/**
+ * Map the model's reply back onto Moodle question numbers.
+ *
+ * Every id is checked against the ids we actually sent. An answer keyed by
+ * something we never issued is dropped and reported rather than being trusted
+ * — that silent mis-key is exactly what made a run of correct answers land on
+ * the wrong questions.
+ */
+function toAnswerMap(raw: unknown, items: PromptItem[]): MappedAnswers {
+  const byId = new Map(items.map((item) => [item.id, item.question.qno]))
   const answers: AnswerMap = {}
+  const warnings: string[] = []
+  const unknownIds: string[] = []
+
+  const pairs: Array<{ id: string; letter: string }> = []
 
   const structured = AnswerSheet.safeParse(raw)
   if (structured.success) {
-    for (const { qno, letter } of structured.data.answers) {
-      answers[String(qno)] = String(letter).trim().toLowerCase()
-    }
-    return answers
-  }
-
-  // Fallback shape: the flat {"1": "a", "2": "c"} map a model may produce when
-  // it is not being held to the schema.
-  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
-    for (const [qno, letter] of Object.entries(raw as Record<string, unknown>)) {
+    pairs.push(...structured.data.answers)
+  } else if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    // Fallback shape: a flat {"q1": "a"} map, from a model not held to the schema.
+    for (const [id, letter] of Object.entries(raw as Record<string, unknown>)) {
       if (typeof letter === "string" || typeof letter === "number") {
-        answers[String(qno)] = String(letter).trim().toLowerCase()
+        pairs.push({ id, letter: String(letter) })
       }
     }
+  }
+
+  for (const { id, letter } of pairs) {
+    const qno = byId.get(String(id).trim())
+    if (qno === undefined) {
+      unknownIds.push(String(id))
+      continue
+    }
+    answers[String(qno)] = String(letter).trim().toLowerCase()
+  }
+
+  // Nothing matched, but the model returned one answer per question in order.
+  // Positional recovery is better than discarding a complete set of answers.
+  if (Object.keys(answers).length === 0 && pairs.length === items.length) {
+    warnings.push(
+      `The model ignored the question ids (returned ${unknownIds
+        .slice(0, 3)
+        .join(", ")}...). Falling back to answer order, which assumes it replied in sequence.`
+    )
+    pairs.forEach(({ letter }, index) => {
+      answers[String(items[index].question.qno)] = String(letter).trim().toLowerCase()
+    })
+  } else if (unknownIds.length > 0) {
+    warnings.push(
+      `Ignored ${unknownIds.length} answer(s) for unrecognised ids: ${unknownIds
+        .slice(0, 5)
+        .join(", ")}.`
+    )
   }
 
   if (Object.keys(answers).length === 0) {
     throw new Error("the model returned no usable answers")
   }
-  return answers
+
+  return { answers, warnings }
 }
 
 type ResponseFormat = Record<string, unknown> | undefined
@@ -172,8 +234,9 @@ export async function solveBatch(
   apiKey: string,
   questions: HarvestedQuestion[],
   model: string = DEFAULT_GROQ_MODEL
-): Promise<{ answers: AnswerMap; mode: string }> {
-  const prompt = buildPrompt(questions)
+): Promise<{ answers: AnswerMap; mode: string; warnings: string[] }> {
+  const items = promptItems(questions)
+  const prompt = buildPrompt(items)
 
   const attempts: Array<{ mode: string; format: ResponseFormat }> = [
     {
@@ -192,7 +255,16 @@ export async function solveBatch(
   for (const attempt of attempts) {
     try {
       const content = await callGroq(apiKey, model, prompt, attempt.format)
-      return { answers: toAnswerMap(JSON.parse(extractJson(content))), mode: attempt.mode }
+      const mapped = toAnswerMap(JSON.parse(extractJson(content)), items)
+
+      const missing = items.filter((item) => !(String(item.question.qno) in mapped.answers))
+      if (missing.length > 0) {
+        mapped.warnings.push(
+          `No answer returned for ${missing.length} question(s); those default to option "a".`
+        )
+      }
+
+      return { ...mapped, mode: attempt.mode }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       // A payload too large for the model will not get smaller on retry.

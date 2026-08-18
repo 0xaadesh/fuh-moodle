@@ -58,20 +58,14 @@ export async function POST(request: Request) {
     events.push({ thinking: true })
 
     const model = creds.groqModel || DEFAULT_GROQ_MODEL
-    const { answers, mode } = await solveBatch(
+    const { answers, mode, warnings } = await solveBatch(
       creds.groqApiKey,
       harvest.questions,
       model
     )
     events.push({ status: `${model} answered using ${mode} mode.` })
-
-    const missing = harvest.questions.filter((q) => !(String(q.qno) in answers))
-    if (missing.length > 0) {
-      events.push({
-        status: `Note: the model omitted ${missing.length} question(s) (${missing
-          .map((q) => q.qno)
-          .join(", ")}); those will default to option "a".`,
-      })
+    for (const warning of warnings) {
+      events.push({ status: `Warning: ${warning}` })
     }
 
     events.push({
