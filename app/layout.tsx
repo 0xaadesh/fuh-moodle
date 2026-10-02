@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "fuh-moodle",
+  title: "QuizSprint",
   description:
     "Dashboard for monitoring Moodle courses, tracking quiz attempts, and solving multiple-choice quizzes.",
   manifest: "/site.webmanifest",
