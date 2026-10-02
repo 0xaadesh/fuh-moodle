@@ -23,7 +23,7 @@ export default async function Page({ searchParams }: PageProps<"/login">) {
             className="size-6 rounded-sm"
             priority
           />
-          <span className="font-semibold">fuh-moodle</span>
+          <span className="font-semibold">QuizSprint</span>
         </div>
         <LoginForm next={target} />
       </div>
