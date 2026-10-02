@@ -32,7 +32,10 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { isConfigured, useCredentials } from "@/hooks/use-credentials"
 import { useSolver } from "@/hooks/use-solver"
 import { fetchCourses, fetchQuizzes, fetchStatus, isFinished } from "@/lib/client-api"
+import { mapWithConcurrency } from "@/lib/moodle/client"
 import type { Course, Creds, Quiz } from "@/lib/types"
+
+const COUNT_CONCURRENCY = 3
 
 /** `?course=<id>` is the open course. Keeping it in the URL is what lets the
  * browser's back/forward buttons move between the two levels. */
@@ -61,6 +64,8 @@ export default function DashboardPage() {
   const [connection, setConnection] = React.useState<ConnectionState>("idle")
   const [courses, setCourses] = React.useState<Course[]>([])
   const [coursesLoading, setCoursesLoading] = React.useState(false)
+  // Kept here rather than in the grid so it survives opening a course and coming back.
+  const [courseQuery, setCourseQuery] = React.useState("")
   // Keyed by course, so a response that lands after the user has moved on only
   // fills its own slot. A missing key means "not loaded yet".
   const [quizzesByCourse, setQuizzesByCourse] = React.useState<
@@ -129,7 +134,30 @@ export default function DashboardPage() {
     void refresh(credentials)
   }, [loaded, credentials, refresh])
 
+  // Background: load every course's quizzes so the cards can show counts and
+  // opening a course is instant. A few at a time to go easy on Moodle; a
+  // failure stays silent here — opening that course retries and reports it.
+  const [countsLoadedFor, setCountsLoadedFor] = React.useState<Course[] | null>(null)
+  const countsLoading = connected && countsLoadedFor !== courses
+  React.useEffect(() => {
+    if (!connected || courses.length === 0) return
+    const controller = new AbortController()
+    void mapWithConcurrency(courses, COUNT_CONCURRENCY, async (course) => {
+      if (controller.signal.aborted) return
+      try {
+        const list = await fetchQuizzes(credentials, course.id, controller.signal)
+        if (!controller.signal.aborted) storeQuizzes(course.id, list)
+      } catch {
+        // Left unloaded: the card shows no count.
+      }
+    }).then(() => {
+      if (!controller.signal.aborted) setCountsLoadedFor(courses)
+    })
+    return () => controller.abort()
+  }, [connected, courses, credentials, storeQuizzes])
+
   // Entering a course — by click, back/forward or a reload — loads its quizzes.
+  // A list already loaded in the background shows at once while it refreshes.
   React.useEffect(() => {
     if (!connected || courseId === null) return
     void loadQuizzes(courseId, credentials).then((list) => storeQuizzes(courseId, list))
@@ -233,6 +261,10 @@ export default function DashboardPage() {
                 courses={courses}
                 loading={coursesLoading}
                 onSelect={handleSelectCourse}
+                quizzesByCourse={quizzesByCourse}
+                countsLoading={countsLoading}
+                query={courseQuery}
+                onQueryChange={setCourseQuery}
               />
             </section>
           ) : (
