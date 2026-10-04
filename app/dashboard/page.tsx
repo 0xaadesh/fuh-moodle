@@ -8,7 +8,7 @@ import { toast } from "sonner"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import type { ConnectionState } from "@/components/connection-status"
-import { CourseGrid } from "@/components/course-grid"
+import { CourseTable } from "@/components/course-table"
 import { QuizList } from "@/components/quiz-list"
 import { SiteHeader } from "@/components/site-header"
 import { SolverTerminal } from "@/components/solver-terminal"
@@ -248,7 +248,7 @@ export default function DashboardPage() {
           ) : courseId === null ? (
             <section className="flex flex-col gap-4">
               <h2 className="text-lg font-semibold">Courses</h2>
-              <CourseGrid
+              <CourseTable
                 courses={courses}
                 loading={coursesLoading}
                 onSelect={handleSelectCourse}
