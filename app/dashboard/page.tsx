@@ -8,7 +8,7 @@ import { toast } from "sonner"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import type { ConnectionState } from "@/components/connection-status"
-import { CourseGrid } from "@/components/course-grid"
+import { CourseTable } from "@/components/course-table"
 import { QuizList } from "@/components/quiz-list"
 import { SiteHeader } from "@/components/site-header"
 import { SolverTerminal } from "@/components/solver-terminal"
@@ -53,14 +53,45 @@ async function loadQuizzes(id: number, creds: Creds): Promise<Quiz[]> {
   }
 }
 
+type Probe = {
+  state: Exclude<ConnectionState, "idle">
+  courses: Course[]
+}
+
+/** Never throws: a failure is reported and comes back as a probe result, which
+ * the caller applies in one go. */
+async function probeConnection(creds: Creds): Promise<Probe> {
+  const status = await fetchStatus(creds)
+  if (!status.authenticated) {
+    if (status.error) {
+      toast.error("Moodle authentication failed", { description: status.error })
+    }
+    return { state: status.error ? "error" : "disconnected", courses: [] }
+  }
+
+  try {
+    return { state: "connected", courses: await fetchCourses(creds) }
+  } catch (error) {
+    toast.error("Could not load courses", {
+      description: error instanceof Error ? error.message : String(error),
+    })
+    return { state: "connected", courses: [] }
+  }
+}
+
 export default function DashboardPage() {
   const { credentials, loaded, save } = useCredentials()
   const router = useRouter()
   const courseId = useCourseParam()
 
-  const [connection, setConnection] = React.useState<ConnectionState>("idle")
+  // Only the probe's outcome is stored. "idle" and "checking" are derived
+  // below, which is what keeps the fetch effect free of synchronous updates.
+  const [probe, setProbe] = React.useState<Exclude<ConnectionState, "idle">>(
+    "checking"
+  )
+  // Bumped to re-run the probe when the credentials themselves have not changed.
+  const [reprobe, setReprobe] = React.useState(0)
   const [courses, setCourses] = React.useState<Course[]>([])
-  const [coursesLoading, setCoursesLoading] = React.useState(false)
   // Keyed by course, so a response that lands after the user has moved on only
   // fills its own slot. A missing key means "not loaded yet".
   const [quizzesByCourse, setQuizzesByCourse] = React.useState<
@@ -68,7 +99,9 @@ export default function DashboardPage() {
   >({})
 
   const configured = isConfigured(credentials)
+  const connection: ConnectionState = configured ? probe : "idle"
   const connected = connection === "connected"
+  const coursesLoading = connection === "checking"
   const selectedCourse =
     courseId === null ? null : (courses.find((course) => course.id === courseId) ?? null)
   // Until the course list arrives (e.g. a reload on `?course=`) only the id is known.
@@ -91,43 +124,23 @@ export default function DashboardPage() {
     void loadQuizzes(id, credentials).then((list) => storeQuizzes(id, list))
   }
 
-  const refresh = React.useCallback(async (creds: Creds) => {
-    if (!isConfigured(creds)) {
-      setConnection("idle")
-      return
-    }
-
-    setConnection("checking")
-    const status = await fetchStatus(creds)
-    if (!status.authenticated) {
-      setConnection(status.error ? "error" : "disconnected")
-      setCourses([])
-      setQuizzesByCourse({})
-      if (status.error) {
-        toast.error("Moodle authentication failed", { description: status.error })
-      }
-      return
-    }
-    setConnection("connected")
-
-    setCoursesLoading(true)
-    try {
-      setCourses(await fetchCourses(creds))
-    } catch (error) {
-      setCourses([])
-      toast.error("Could not load courses", {
-        description: error instanceof Error ? error.message : String(error),
-      })
-    } finally {
-      setCoursesLoading(false)
-    }
-  }, [])
-
-  // Nothing may run before localStorage has been read.
+  // Nothing may run before localStorage has been read. A result that lands
+  // after the credentials changed is dropped rather than applied.
   React.useEffect(() => {
-    if (!loaded) return
-    void refresh(credentials)
-  }, [loaded, credentials, refresh])
+    if (!loaded || !configured) return
+
+    let active = true
+    void probeConnection(credentials).then((result) => {
+      if (!active) return
+      setProbe(result.state)
+      setCourses(result.courses)
+      if (result.state !== "connected") setQuizzesByCourse({})
+    })
+
+    return () => {
+      active = false
+    }
+  }, [loaded, configured, credentials, reprobe])
 
   // Entering a course — by click, back/forward or a reload — loads its quizzes.
   React.useEffect(() => {
@@ -138,17 +151,25 @@ export default function DashboardPage() {
   // Reloading the quiz list after a solve run needs the latest selection
   // without making the solver hook depend on it.
   const reloadQuizzes = React.useRef<() => void>(() => {})
-  reloadQuizzes.current = () => {
-    if (courseId !== null) reloadQuizzesFor(courseId)
-  }
+  React.useEffect(() => {
+    reloadQuizzes.current = () => {
+      if (courseId !== null) reloadQuizzesFor(courseId)
+    }
+  })
 
   const solver = useSolver(
     credentials,
     React.useCallback(() => reloadQuizzes.current(), [])
   )
 
+  function reconnect() {
+    setProbe("checking")
+    setReprobe((count) => count + 1)
+  }
+
   function handleSave(next: Creds) {
     save(next)
+    reconnect()
     setQuizzesByCourse({})
     // New credentials may be a different account — start again from the top.
     if (courseId !== null) router.push("/dashboard")
@@ -205,11 +226,9 @@ export default function DashboardPage() {
             </Breadcrumb>
           }
           onRefresh={() =>
-            courseId === null
-              ? void refresh(credentials)
-              : reloadQuizzesFor(courseId)
+            courseId === null ? reconnect() : reloadQuizzesFor(courseId)
           }
-          refreshing={connection === "checking" || coursesLoading || quizzesLoading}
+          refreshing={coursesLoading || quizzesLoading}
         />
 
         <div className="@container/main flex flex-1 flex-col gap-6 p-4 lg:p-6">
@@ -229,7 +248,7 @@ export default function DashboardPage() {
           ) : courseId === null ? (
             <section className="flex flex-col gap-4">
               <h2 className="text-lg font-semibold">Courses</h2>
-              <CourseGrid
+              <CourseTable
                 courses={courses}
                 loading={coursesLoading}
                 onSelect={handleSelectCourse}

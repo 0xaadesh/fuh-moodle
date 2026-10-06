@@ -10,11 +10,21 @@ export type Creds = {
   groqModel?: string
 }
 
+/** Moodle's own timeline classification. Resolved from the enrolment window
+ * when the list is fetched, so nothing reads the clock while rendering. */
+export const COURSE_TIMELINES = ["In progress", "Upcoming", "Past"] as const
+
+export type CourseTimeline = (typeof COURSE_TIMELINES)[number]
+
 export type Course = {
   id: number
   fullname: string
   shortname: string
   viewurl?: string
+  /** Category name. Optional: a Moodle that does not return it just leaves the
+   * column and its filter empty. */
+  category?: string
+  timeline: CourseTimeline
 }
 
 export type QuizStatus = {
