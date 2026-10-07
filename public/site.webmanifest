@@ -1,6 +1,6 @@
 {
-  "name": "fuh-moodle",
-  "short_name": "fuh-moodle",
+  "name": "QuizSprint",
+  "short_name": "QuizSprint",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",

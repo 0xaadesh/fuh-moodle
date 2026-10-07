@@ -67,7 +67,7 @@ export function AppSidebar({
                 className="size-5! rounded-sm"
                 priority
               />
-              <span className="text-base font-semibold">fuh-moodle</span>
+              <span className="text-base font-semibold">QuizSprint</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

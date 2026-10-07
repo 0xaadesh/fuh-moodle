@@ -46,7 +46,7 @@ export function LoginForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader>
-          <CardTitle>Sign in to fuh-moodle</CardTitle>
+          <CardTitle>Sign in to QuizSprint</CardTitle>
           <CardDescription>
             This dashboard is private. Enter the operator credentials to continue.
           </CardDescription>

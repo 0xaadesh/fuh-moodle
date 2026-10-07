@@ -52,7 +52,7 @@ export default function Home() {
             className="size-6 rounded-sm"
             priority
           />
-          <span className="font-semibold">fuh-moodle</span>
+          <span className="font-semibold">QuizSprint</span>
         </div>
         <ModeToggle />
       </header>
@@ -61,7 +61,7 @@ export default function Home() {
         <div className="flex max-w-2xl flex-col items-center gap-6 text-center">
           <Image
             src="/web-app-manifest-192x192.png"
-            alt="fuh-moodle"
+            alt="QuizSprint"
             width={192}
             height={192}
             className="size-20 rounded-2xl"
@@ -70,18 +70,17 @@ export default function Home() {
 
           <div className="flex flex-col gap-4">
             <h1 className="text-5xl font-bold tracking-tight text-balance sm:text-6xl">
-              fuh-moodle
+              QuizSprint
             </h1>
             <p className="text-xl text-balance text-muted-foreground sm:text-2xl">
-              Automate the boring, repetitive quizzes with AI. Sit back, relax.
+              Your Moodle courses and quizzes, all in one place.
             </p>
           </div>
 
           <p className="max-w-xl text-base text-pretty text-muted-foreground">
-            Your professors have been recycling the same question bank since 2019.
-            If they are not putting in the effort to write new quizzes, why are you
-            the one losing sleep over solving them? Point it at your Moodle, hit
-            solve, and go spend the evening on something that actually counts.
+            Connect your Moodle account to see every course and quiz at a glance,
+            track attempt status, and complete multiple-choice quizzes with AI
+            assistance when you choose to.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
