@@ -1,5 +1,4 @@
 <div align="center">
-  <img src="public/favicon-96x96.png" width="72" height="72" alt="">
   <h1>fuh-moodle</h1>
   <p><em>Automate the boring, repetitive quizzes with AI. Sit back, relax.</em></p>
 </div>
