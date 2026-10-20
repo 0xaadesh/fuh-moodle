@@ -18,7 +18,7 @@ import { SESSION_COOKIE, verifySessionToken } from "@/lib/session"
 export async function proxy(request: NextRequest) {
   const secret =
     process.env.AUTH_SECRET ||
-    `fuh-moodle:${process.env.ADMIN_USERNAME}:${process.env.ADMIN_PASSWORD}`
+    `moodlebee:${process.env.ADMIN_USERNAME}:${process.env.ADMIN_PASSWORD}`
 
   const token = request.cookies.get(SESSION_COOKIE)?.value
   const username = await verifySessionToken(token, secret)

@@ -52,7 +52,7 @@ export default function Home() {
             className="size-6 rounded-sm"
             priority
           />
-          <span className="font-semibold">QuizSprint</span>
+          <span className="font-semibold">MoodleBee</span>
         </div>
         <ModeToggle />
       </header>
@@ -61,7 +61,7 @@ export default function Home() {
         <div className="flex max-w-2xl flex-col items-center gap-6 text-center">
           <Image
             src="/web-app-manifest-192x192.png"
-            alt="QuizSprint"
+            alt="MoodleBee"
             width={192}
             height={192}
             className="size-20 rounded-2xl"
@@ -70,7 +70,7 @@ export default function Home() {
 
           <div className="flex flex-col gap-4">
             <h1 className="text-5xl font-bold tracking-tight text-balance sm:text-6xl">
-              QuizSprint
+              MoodleBee
             </h1>
             <p className="text-xl text-balance text-muted-foreground sm:text-2xl">
               Your Moodle courses and quizzes, all in one place.

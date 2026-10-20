@@ -1,5 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#F17620"/>
-  <circle cx="256" cy="244" r="124" fill="none" stroke="#fff" stroke-width="60"/>
-  <line x1="300" y1="304" x2="372" y2="376" stroke="#fff" stroke-width="60" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <title>MoodleBee</title>
+  <rect width="512" height="512" rx="112" fill="#F0761F"/>
+  <path d="M232 210C183 213 141 188 141 155C141 130 160 116 182 122C210 130 228 171 232 210Z" fill="#FFF"/>
+  <path d="M280 210C329 213 371 188 371 155C371 130 352 116 330 122C302 130 284 171 280 210Z" fill="#FFF"/>
+  <path d="M233 206L219 182M279 206L293 182" stroke="#211A17" stroke-width="14" stroke-linecap="round"/>
+  <path d="M256 386L239 356H273L256 386Z" fill="#211A17"/>
+  <rect x="177" y="200" width="158" height="166" rx="79" fill="#211A17"/>
+  <path d="M179 260H333V284H179V260Z" fill="#FFD27A"/>
+  <path d="M184 307H328C324 316 319 324 312 331H200C193 324 188 316 184 307Z" fill="#FFD27A"/>
+  <circle cx="231" cy="234" r="7" fill="#FFF"/>
+  <circle cx="281" cy="234" r="7" fill="#FFF"/>
 </svg>

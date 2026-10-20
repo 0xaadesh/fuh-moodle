@@ -36,7 +36,7 @@ export function authConfig(): AuthConfig {
   // Deriving the signing key from the password is a reasonable default: it
   // never leaves the server, and changing the password invalidates every
   // existing session. Set AUTH_SECRET to decouple the two.
-  const secret = process.env.AUTH_SECRET || `fuh-moodle:${username}:${password}`
+  const secret = process.env.AUTH_SECRET || `moodlebee:${username}:${password}`
 
   return { username, password, secret }
 }

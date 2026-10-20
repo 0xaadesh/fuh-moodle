@@ -19,15 +19,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "QuizSprint",
+  title: "MoodleBee",
+  applicationName: "MoodleBee",
   description:
-    "Dashboard for monitoring Moodle courses, tracking quiz attempts, and solving multiple-choice quizzes.",
+    "MoodleBee brings your Moodle courses, quiz attempts, and AI-assisted multiple-choice quizzes into one dashboard.",
   manifest: "/site.webmanifest",
   icons: {
-    // favicon.svg is deliberately not listed — it is a 1.2 MB rasterised
-    // export, and browsers prefer SVG when offered, so advertising it would
-    // cost every visitor that download for a 16px tab icon.
     icon: [
+      { url: "/favicon.svg", type: "image/svg+xml", sizes: "any" },
       { url: "/favicon.ico", sizes: "any" },
       { url: "/favicon-96x96.png", type: "image/png", sizes: "96x96" },
     ],

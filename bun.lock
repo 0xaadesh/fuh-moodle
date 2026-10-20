@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "frontend",
+      "name": "moodlebee",
       "dependencies": {
         "@base-ui/react": "^1.7.0",
         "@dnd-kit/core": "^6.3.1",

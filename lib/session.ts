@@ -10,7 +10,7 @@
 const encoder = new TextEncoder()
 const decoder = new TextDecoder()
 
-export const SESSION_COOKIE = "fuh_session"
+export const SESSION_COOKIE = "moodlebee_session"
 
 /** Eight hours. Long enough for a sitting, short enough that a forgotten
  * session on a shared machine expires on its own. */

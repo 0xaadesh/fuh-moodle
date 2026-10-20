@@ -1,6 +1,10 @@
 {
-  "name": "QuizSprint",
-  "short_name": "QuizSprint",
+  "name": "MoodleBee",
+  "short_name": "MoodleBee",
+  "description": "Your Moodle courses and quizzes, all in one place.",
+  "id": "/",
+  "start_url": "/dashboard",
+  "scope": "/",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",
