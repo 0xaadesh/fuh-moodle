@@ -1,4 +1,4 @@
-# Moodle Automation Controller — Full Technical Spec & Next.js Migration Guide
+# MoodleBee — Full Technical Spec & Next.js Migration Guide
 
 > **Purpose of this document.** It is a complete, self-contained reference for the existing
 > Python/FastAPI app (`src/web.py`, `src/main.py`, `src/static/*`) and a migration plan to
@@ -248,7 +248,7 @@ name. `.strip()` the name.
 > straight in the port — the Python code calls it `quiz_id` in some places and `cmid` in
 > others, and they are the same number.
 
-**⚠️ Performance trap:** for each quiz found, the current code then fetches that quiz's page to
+**Performance trap:** for each quiz found, the current code then fetches that quiz's page to
 get its status (§4.3) — **serially, in the same request**. A course with 15 quizzes = 16
 sequential HTTP roundtrips before the endpoint responds. This is the single slowest part of the
 dashboard. In the port, run these **concurrently** with `Promise.all` (see §7.6).
@@ -534,7 +534,7 @@ GET {base}/mod/quiz/attempt.php?attempt={attempt_id}&cmid={cmid}&page={p}
    name matches** `^q\d+:\d+(_|:)` — per-question fields are excluded here, and the ones that
    are actually needed get re-added deliberately in the next step.
 
-   > **⚠️ Quirk worth flagging.** `unquote` is *percent*-decoding, but HTML attributes are
+   > **Quirk worth flagging.** `unquote` is *percent*-decoding, but HTML attributes are
    > *entity*-encoded. So `&amp;` survives as `&amp;`, while a literal `%3A` in a field name
    > would be turned into `:`. This is almost certainly not what was intended. In the port,
    > decode HTML entities (`&amp; &lt; &gt; &quot; &#39;`) instead — but **test against a real
@@ -662,7 +662,7 @@ which key is present.
   list.
 - **Skeleton loaders** while courses/quizzes are loading.
 
-> **⚠️ Security note for the rewrite:** the current frontend interpolates Moodle-supplied
+> **Security note for the rewrite:** the current frontend interpolates Moodle-supplied
 > strings (course names, quiz names, question text, choice text) straight into `innerHTML`.
 > That is a stored-XSS path from any Moodle content author. In React the problem disappears
 > **as long as you never reach for `dangerouslySetInnerHTML`.** Do not reintroduce it.

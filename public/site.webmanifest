@@ -1,6 +1,10 @@
 {
-  "name": "fuh-moodle",
-  "short_name": "fuh-moodle",
+  "name": "MoodleBee",
+  "short_name": "MoodleBee",
+  "description": "Your Moodle courses and quizzes, all in one place.",
+  "id": "/",
+  "start_url": "/dashboard",
+  "scope": "/",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",

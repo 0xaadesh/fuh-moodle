@@ -1,6 +1,7 @@
 <div align="center">
-  <h1>fuh-moodle</h1>
-  <p><em>Automate the boring, repetitive quizzes with AI. Sit back, relax.</em></p>
+  <img src="public/favicon.svg" width="72" height="72" alt="MoodleBee logo">
+  <h1>MoodleBee</h1>
+  <p><em>Your Moodle courses and quizzes, all in one place.</em></p>
 </div>
 
 ---
@@ -24,10 +25,10 @@ words: HTTP + cookies + scraping, not a typed SDK.
 ```
 browser                    Next.js route handler              Moodle / Groq
 ───────                    ─────────────────────              ─────────────
-credentials in         ──▶ login handshake (3 hops)      ──▶  /login/index.php
-localStorage               scrape + parse                ──▶  /course/view.php
-                           batch prompt                  ──▶  api.groq.com
-                       ◀── parsed JSON only
+credentials in         --> login handshake (3 hops)      -->  /login/index.php
+localStorage               scrape + parse                -->  /course/view.php
+                           batch prompt                  -->  api.groq.com
+                       <-- parsed JSON only
 ```
 
 ### Everything Moodle-facing runs server-side
