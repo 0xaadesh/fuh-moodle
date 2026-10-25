@@ -43,16 +43,43 @@ export function isConfigured(creds: Creds | null): creds is Creds {
   return Boolean(creds?.moodleUrl && creds.username && creds.password)
 }
 
-export function useCredentials() {
-  const [credentials, setCredentials] = React.useState<Creds>(EMPTY_CREDENTIALS)
-  // localStorage is not available during the server render, so nothing that
-  // depends on credentials may run until this flips.
-  const [loaded, setLoaded] = React.useState(false)
+/**
+ * localStorage is an external store, so it is subscribed to rather than copied
+ * into state after mount. The snapshot is cached because `useSyncExternalStore`
+ * compares it by identity and a fresh `read()` would loop forever.
+ */
+const listeners = new Set<() => void>()
+let snapshot: Creds | null = null
 
-  React.useEffect(() => {
-    setCredentials(read())
-    setLoaded(true)
-  }, [])
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener)
+  return () => {
+    listeners.delete(listener)
+  }
+}
+
+function getSnapshot(): Creds {
+  snapshot ??= read()
+  return snapshot
+}
+
+/** The server has no localStorage, and neither does the hydrating render. */
+function getServerSnapshot(): Creds {
+  return EMPTY_CREDENTIALS
+}
+
+const onClient = () => true
+const onServer = () => false
+
+export function useCredentials() {
+  const credentials = React.useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot
+  )
+  // Flips once hydration has run, which is the point at which `credentials`
+  // reflects localStorage rather than the placeholder above.
+  const loaded = React.useSyncExternalStore(subscribe, onClient, onServer)
 
   const save = React.useCallback((next: Creds) => {
     localStorage.setItem(KEYS.moodleUrl, next.moodleUrl)
@@ -60,7 +87,8 @@ export function useCredentials() {
     localStorage.setItem(KEYS.password, next.password)
     localStorage.setItem(KEYS.groqApiKey, next.groqApiKey ?? "")
     localStorage.setItem(KEYS.groqModel, next.groqModel ?? "")
-    setCredentials(next)
+    snapshot = next
+    for (const listener of listeners) listener()
   }, [])
 
   return { credentials, loaded, save }

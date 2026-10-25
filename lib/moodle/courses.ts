@@ -1,8 +1,27 @@
 import { moodleRequest } from "@/lib/moodle/client"
 import type { MoodleSession } from "@/lib/moodle/auth"
-import type { Course } from "@/lib/types"
+import type { Course, CourseTimeline } from "@/lib/types"
 
 const METHOD = "core_course_get_enrolled_courses_by_timeline_classification"
+
+/** The subset of the endpoint's course object that is read. It returns a good
+ * deal more; see MIGRATION.md §4.1. */
+type MoodleCourse = {
+  id: number
+  fullname: string
+  shortname: string
+  viewurl?: string
+  coursecategory?: string
+  /** Enrolment window, epoch seconds. Moodle sends 0 for "not set". */
+  startdate?: number
+  enddate?: number
+}
+
+function timelineOf(course: MoodleCourse, now: number): CourseTimeline {
+  if (course.startdate && course.startdate * 1000 > now) return "Upcoming"
+  if (course.enddate && course.enddate * 1000 < now) return "Past"
+  return "In progress"
+}
 
 /**
  * The only structured endpoint in the whole app: Moodle's internal AJAX
@@ -49,16 +68,20 @@ export async function getCourses({
   const item = parsed[0] as {
     error?: unknown
     exception?: unknown
-    data?: { courses?: Course[] }
+    data?: { courses?: MoodleCourse[] }
   }
   if (item.error) {
     throw new Error(`Moodle AJAX API Error: ${JSON.stringify(item.exception)}`)
   }
+
+  const now = Date.now()
 
   return (item.data?.courses ?? []).map((course) => ({
     id: course.id,
     fullname: course.fullname,
     shortname: course.shortname,
     viewurl: course.viewurl,
+    category: course.coursecategory,
+    timeline: timelineOf(course, now),
   }))
 }

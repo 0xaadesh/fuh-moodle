@@ -24,11 +24,14 @@ export function MoodleConfigForm({
   disabled?: boolean
 }) {
   const [draft, setDraft] = React.useState(credentials)
+  const [adopted, setAdopted] = React.useState(credentials)
 
-  // Adopt values loaded from localStorage after hydration.
-  React.useEffect(() => {
+  // Adopt values loaded from localStorage after hydration. Adjusting during
+  // render rather than in an effect avoids rendering the stale draft first.
+  if (adopted !== credentials) {
+    setAdopted(credentials)
     setDraft(credentials)
-  }, [credentials])
+  }
 
   function update(field: keyof Creds) {
     return (event: React.ChangeEvent<HTMLInputElement>) => {

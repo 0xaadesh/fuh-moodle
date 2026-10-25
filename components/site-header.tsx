@@ -1,5 +1,6 @@
 "use client"
 
+import type * as React from "react"
 import { RefreshCwIcon } from "lucide-react"
 
 import { ModeToggle } from "@/components/mode-toggle"
@@ -18,7 +19,7 @@ export function SiteHeader({
   onRefresh,
   refreshing,
 }: {
-  title: string
+  title: React.ReactNode
   onRefresh: () => void
   refreshing: boolean
 }) {
@@ -30,7 +31,7 @@ export function SiteHeader({
           orientation="vertical"
           className="mx-2 h-4 data-vertical:self-auto"
         />
-        <h1 className="truncate text-base font-medium">{title}</h1>
+        <div className="min-w-0 text-base">{title}</div>
         <div className="ml-auto flex items-center gap-2">
           <Tooltip>
             <TooltipTrigger
